@@ -2,7 +2,7 @@ import Livre from '../Models/LivreModel';
 
 //Retourner les informations d’un livre donné
 
-export const showLivre = async (req, res) => {
+export const AfficherLivre = async (req, res) => {
   try {
     const livre = await Livre.findById(req.params.id);
     if (!livre) {

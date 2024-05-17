@@ -1,57 +1,65 @@
-const Livre = require("../models/livreModel");
+import Livre from '../Models/LivreModel';
 
-exports.getLivreById = async (req, res) => {
+//Retourner les informations d’un livre donné
+
+export const showLivre = async (req, res) => {
   try {
-    const livre = await Livre.findById(req.params.idLivre);
+    const livre = await Livre.findById(req.params.id);
     if (!livre) {
-      return res.status(404).json({ message: "Livre not found" });
+      return res.status(404).json({ message: "Livre n'existe pas" });
     }
     res.status(200).json(livre);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Internal server error" });
+  } catch (erreur) {
+    res.status(500).json({ message: erreur.message });
   }
 };
 
-exports.addLivre = async (req, res) => {
+//Ajouter un nouveau livre
+export const AjouterLivre = async (req, res) => {
+  const { Code, Titre, Description, Auteur } = req.body;
   try {
-    const { code, titre, description, auteur } = req.body;
-    const newLivre = new Livre({ code, titre, description, auteur });
+    const newLivre = new Livre({ Code, Titre, Description, Auteur });
     await newLivre.save();
-    res.status(201).json(newLivre);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(200).json(newLivre);
+  } catch (erreur) {
+    res.status(400).json({ message: erreur.message });
   }
-};
+}
 
-exports.updateLivre = async (req, res) => {
+//Modifier un Livre
+export const ModifierLivre = async (req, res) => {
+  const { Code, Titre, Description, Auteur } = req.body;
   try {
-    const { code, titre, description, auteur } = req.body;
-    const updatedLivre = await Livre.findByIdAndUpdate(
-      req.params.idLivre,
-      { code, titre, description, auteur },
-      { new: true }
-    );
-    if (!updatedLivre) {
-      return res.status(404).json({ message: "Livre not found" });
+    const livre = await Livre.findById(req.params.id);
+    if (!livre) {
+      return res.status(404).json({ message: "Livre n'existe pas" });
     }
-    res.status(200).json(updatedLivre);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Internal server error" });
+    livre.Code = Code;
+    livre.Titre = Titre;
+    livre.Description = Description;
+    livre.Auteur = Auteur;
+    await livre.save();
+    res.status(200).json(livre);
+  } catch (erreur) {
+    res.status(400).json({ message: erreur.message });
   }
-};
+}
 
-exports.deleteLivre = async (req, res) => {
+//Supprimer un livre
+export const SupprimerLivre = async (req, res) => {
   try {
-    const deletedLivre = await Livre.findByIdAndDelete(req.params.idLivre);
-    if (!deletedLivre) {
-      return res.status(404).json({ message: "Livre not found" });
+    const livre = await Livre.findById(req.params.id);
+    if (!livre) {
+      return res.status(404).json({ message: "Livre n'existe pas" });
     }
-    res.status(200).json({ message: "Livre deleted successfully" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Internal server error" });
+    await livre.remove();
+    res.status(200).json({ message: "Livre supprime avec succes" });
+  } catch (erreur) {
+    
+    res.status(400).json({ message: erreur.message });
+
   }
-};
+}
+
+
+

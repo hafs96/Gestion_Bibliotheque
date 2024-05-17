@@ -1,12 +1,26 @@
-import mongoose from "mongoose"
-const LivreSchema = mongoose.Schema({
-    id: { type: String, required: true, unique:true },
-    titre: { type: String, required: true },
-    auteur: { type: String, required: true },
-    prix: { type: Number, required: true },
+import { Schema, model } from "mongoose";
+
+const LivreSchema = Schema({
+  Code: {
+    type: String,
+    required: true,
+    unique: true
+  },
+  Titre: {
+    type: String,
+    required: true
+  },
+  Description: {
+    type: String,
+    required: true
+  },
+  Auteur: {
+    type: String,
+    required: true
+  },
 });
 
-export default mongoose.model('livre', LivreSchema);
+export default model('livre', LivreSchema);
 
 
 

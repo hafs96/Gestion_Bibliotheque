@@ -5,17 +5,17 @@ import LivreRoute from "./routes/LivreRoute.js";
 
 //
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;cd
 
 // Utilisation de body-parser pour traiter les requêtes JSON et URL-encoded
 app.use(bodyParser.json());
 
 // Utilisation des routes définies
-app.use("/api/v1/livre", LivreRoute);
+app.use("/livre", LivreRoute);
 
 //Connexion avec la base de donnees
 
-mongoose.connect("mongodb://localhost:27017/dbLivre", {
+mongoose.connect("mongodb://localhost:27017/dblivre", {
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })

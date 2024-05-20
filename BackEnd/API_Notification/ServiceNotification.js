@@ -1,68 +1,127 @@
-import express from "express";
-import dotenv from "dotenv";
-import cors from "cors";
 import amqp from "amqplib";
-import nodemailer from "nodemailer";
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
 import axios from "axios";
+import nodemailer from "nodemailer";
+
+dotenv.config();
 
 const app = express();
 
-app.use(express.json());
 app.use(cors());
-dotenv.config();
 
-const port = process.env.PORT || 3000;
+app.use(express.json());
+
+const port = process.env.port || 3000;
+
 const rabbitUrl = "amqp://localhost:5672";
 
 app.listen(port, (err) => {
-    if (err) {
-      console.log("Erreur de notification en port ", port);
-    } else {
-      console.log("Le service de motification est lance au port ", port);
-    }
-});
-
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: process.env.SMTP_PORT,
-  secure: false, 
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS
+  if (err) {
+    console.log("Erreur de notification au port", port);
+  } else {
+    console.log("Le service notification est lance par le port", port);
   }
 });
 
-async function sendEmail(to, subject, text) {
-  const mailOptions = {
-    from: process.env.SMTP_USER,
-    to,
-    subject,
-    text
-  };
+async function Messages() {
+  try {
+    const connection = await amqp.connect(rabbitUrl);
+    const channel = await connection.createChannel();
+    const queue = "notification_queue";
 
-  await transporter.sendMail(mailOptions);
-};
+    await channel.assertQueue(queue, { durable: true });
+    console.log("En attente des messages...");
 
-async function handleNewEmpruntAdded(emprunt) {
-  const { clientEmail, livreTitle } = emprunt;
-  const subject = 'New Emprunt Added';
-  const text = `Dear Customer, you have successfully borrowed the book "${livreTitle}".`;
-  await sendEmail(clientEmail, subject, text);
-};
+    channel.consume(queue, (msg) => {
+      const message = JSON.parse(msg.content.toString());
+      console.log("Message recu:", message);
 
-//un livre a été retourné
-async function handleNewRetourAdded(retour) {
-  const {livreTitle } = retour;
-  const subject = 'un livre a été retourné';
-  const text = `cher client, Le livre "${livreTitle}"a ete disponible.`;
-  const users = await fetchAllUsers();
-  users.forEach(async (user) => {
-    await sendEmail(user.email, subject, text);
-  });
+      switch (message.eventType) {
+        case "new_emprunt_added":
+          handleNewEmpruntAdded(message.emprunt);
+          break;
+        case "emprunt_returned":
+          handleEmpruntReturned(message.emprunt);
+          break;
+        case "new_livre_added":
+          handleNewLivreAdded(message.livre);
+        default:
+          console.log("Unknown message type:", message.eventType);
+      }
+
+      channel.ack(msg);
+    });
+  } catch (error) {
+    console.error(error);
+  }
 }
-//retourner la liste des email des clients
+//handleNewLivreAdded
+async function handleNewLivreAdded(livre) {
+  const res = await axios.get("http://localhost:3000/api/v1/clients");
+  const clientsList = await res.data.clients;
+  if (clientsList) {
+    for (let i = 0; i < clientsList.length; i++) {
+      let email = clientsList[i].email;
+      sendMail(email, "Nouveau Livre ajoute a notre bibliotheque", livre);
+    }
+  }
+}
+//handleNewEmpruntAdded
+async function handleNewEmpruntAdded(emprunt) {
+  const res = await axios.get("http://localhost:3000/api/v1/clients");
+  const clientsList = await res.data.clients;
+  if (clientsList) {
+    for (let i = 0; i < clientsList.length; i++) {
+      let email = clientsList[i].email;
+      sendMail(email, "Nouveau Emprunt ajoute a notre bibliotheque", emprunt);
+    }
+  }
+}
+//handleEmpruntReturned
+async function handleEmpruntReturned(emprunt) {
+  const res = await axios.get("http://localhost:3000/api/v1/clients");
+  const clientsList = await res.data.clients;
+  if (clientsList) {
+    for (let i = 0; i < clientsList.length; i++) {
+      let email = clientsList[i].email;
+      sendMail(email, "Emprunt retourne a notre bibliotheque", emprunt);
+    }
+  }
+}
 
+const transporter = nodemailer.createTransport({
+  host: process.env.my_host,
+  port: 465,
+  secure: true,
+  auth: {
+    user: process.env.my_username,
+    pass: process.env.my_password,
+  },
+});
 
+const sendMail = async (_to, subject, l) => {
+  const text = `<h1>${subject}}</h1>
+    <p>Livre Code: ${l.code}</p>
+    <p>Livre Titre: ${l.titre}</p>
+    <p>Livre Description: ${l.description}</p>
+    <p>Livre Auteur: ${l.auteur}</p>
+  `;
+  try {
+    let info = await transporter.sendMail({
+      from: process.env.my_username,
+      to: _to,
+      subject: subject,
+      html: text,
+    });
 
+    console.log("Email sent:", info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error("Error sending email:", error);
+    return { success: false, error: error };
+  }
+};
 
-
+Messages();

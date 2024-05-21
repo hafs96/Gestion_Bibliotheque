@@ -18,7 +18,7 @@ app.use(express.json());
 
 const port = process.env.port || 3000;
 const rabbitUrl = process.env.RABBITMQ_URL|| "amqp://localhost:5672";
-const mongoUrl = process.env.mongoUrl || "mongodb://localhost:27017/";
+const mongoUrl = process.env.mongoUrl || "mongodb://localhost:27017/dblivre";
 
 mongoose.connect(mongoUrl, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('MongoDB connected'))

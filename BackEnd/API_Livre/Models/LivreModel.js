@@ -20,7 +20,7 @@ const LivreSchema = Schema({
   },
 });
 
-export default model('dblivre', LivreSchema);
+export default model('livre', LivreSchema);
 
 
 

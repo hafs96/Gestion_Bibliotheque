@@ -2,8 +2,11 @@ import amqp from "amqplib";
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import axios from "axios";
-import nodemailer from "nodemailer";
+import amqp from 'amqplib';
+import dotenv from 'dotenv';
+import mongoose from 'mongoose';
+import { handleNewEmpruntAdded, handleEmpruntReturned, handleNewLivreAdded } from './Controllers/NotificationControllers';
+
 
 dotenv.config();
 
@@ -14,8 +17,12 @@ app.use(cors());
 app.use(express.json());
 
 const port = process.env.port || 3000;
+const rabbitUrl = process.env.RABBITMQ_URL|| "amqp://localhost:5672";
+const mongoUrl = process.env.mongoUrl || "mongodb://localhost:27017/";
 
-const rabbitUrl = "amqp://localhost:5672";
+mongoose.connect(mongoUrl, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log('MongoDB connected'))
+  .catch(err => console.error('MongoDB connection error:', err));
 
 app.listen(port, (err) => {
   if (err) {
@@ -57,71 +64,7 @@ async function Messages() {
     console.error(error);
   }
 }
-//handleNewLivreAdded
-async function handleNewLivreAdded(livre) {
-  const res = await axios.get("http://localhost:3000/api/v1/clients");
-  const clientsList = await res.data.clients;
-  if (clientsList) {
-    for (let i = 0; i < clientsList.length; i++) {
-      let email = clientsList[i].email;
-      sendMail(email, "Nouveau Livre ajoute a notre bibliotheque", livre);
-    }
-  }
-}
-//handleNewEmpruntAdded
-async function handleNewEmpruntAdded(emprunt) {
-  const res = await axios.get("http://localhost:3000/api/v1/clients");
-  const clientsList = await res.data.clients;
-  if (clientsList) {
-    for (let i = 0; i < clientsList.length; i++) {
-      let email = clientsList[i].email;
-      sendMail(email, "Nouveau Emprunt ajoute a notre bibliotheque", emprunt);
-    }
-  }
-}
-//handleEmpruntReturned
-async function handleEmpruntReturned(emprunt) {
-  const res = await axios.get("http://localhost:3000/api/v1/clients");
-  const clientsList = await res.data.clients;
-  if (clientsList) {
-    for (let i = 0; i < clientsList.length; i++) {
-      let email = clientsList[i].email;
-      sendMail(email, "Emprunt retourne a notre bibliotheque", emprunt);
-    }
-  }
-}
 
-const transporter = nodemailer.createTransport({
-  host: process.env.my_host,
-  port: 465,
-  secure: true,
-  auth: {
-    user: process.env.my_username,
-    pass: process.env.my_password,
-  },
-});
 
-const sendMail = async (_to, subject, l) => {
-  const text = `<h1>${subject}}</h1>
-    <p>Livre Code: ${l.code}</p>
-    <p>Livre Titre: ${l.titre}</p>
-    <p>Livre Description: ${l.description}</p>
-    <p>Livre Auteur: ${l.auteur}</p>
-  `;
-  try {
-    let info = await transporter.sendMail({
-      from: process.env.my_username,
-      to: _to,
-      subject: subject,
-      html: text,
-    });
-
-    console.log("Email sent:", info.messageId);
-    return { success: true, messageId: info.messageId };
-  } catch (error) {
-    console.error("Error sending email:", error);
-    return { success: false, error: error };
-  }
-};
 
 Messages();

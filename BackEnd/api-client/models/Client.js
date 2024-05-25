@@ -7,4 +7,4 @@ const ClientSchema = new Schema(
         email: { type: String, required: true, unique: true }
     });
 
-export default model("client", ClientSchema)
+export default model('client', ClientSchema)
